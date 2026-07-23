@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INTAKE — an AI query router for college admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Source+Serif+4:wght@400;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2b45;
+    --ink-deep:#141f33;
+    --paper:#efe6d0;
+    --paper-white:#f8f3e6;
+    --kraft:#b9925a;
+    --kraft-dark:#8a6a3c;
+    --stamp:#7a2e2e;
+    --stamp-ink:#6b2727;
+    --charcoal:#2a2620;
+    --line: rgba(42,38,32,0.18);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--charcoal);
+    font-family:'Source Serif 4', serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* subtle paper grain */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    opacity:0.05;
+    z-index:999;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  h1,h2,h3{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    margin:0;
+    color:var(--ink);
+  }
+
+  a{ color:inherit; }
+
+  .wrap{
+    max-width:1040px;
+    margin:0 auto;
+    padding:0 28px;
+  }
+
+  /* ---------- NAV ---------- */
+  .nav{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:22px 28px;
+    max-width:1040px;
+    margin:0 auto;
+  }
+  .nav .brand{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    letter-spacing:0.12em;
+    font-size:14px;
+    color:var(--ink);
+  }
+  .nav .brand span{ color:var(--stamp); }
+  .nav .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    color:var(--kraft-dark);
+    border:1px solid var(--line);
+    padding:4px 10px;
+    border-radius:2px;
+  }
+
+  /* ---------- HERO / ROUTING SLIP ---------- */
+  .hero{
+    padding:36px 28px 80px;
+  }
+  .hero-grid{
+    max-width:1040px;
+    margin:0 auto;
+    display:grid;
+    grid-template-columns:1.05fr 0.95fr;
+    gap:56px;
+    align-items:center;
+  }
+  .hero-copy .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.14em;
+    color:var(--stamp);
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .hero-copy h1{
+    font-size:44px;
+    line-height:1.08;
+    letter-spacing:-0.01em;
+  }
+  .hero-copy h1 em{
+    font-style:italic;
+    color:var(--stamp);
+  }
+  .hero-copy p.lede{
+    margin-top:20px;
+    font-size:18px;
+    max-width:46ch;
+    color:#3c362c;
+  }
+  .hero-actions{
+    margin-top:28px;
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.04em;
+    padding:12px 20px;
+    border-radius:2px;
+    text-decoration:none;
+    display:inline-block;
+    border:1px solid var(--ink);
+  }
+  .btn.primary{
+    background:var(--ink);
+    color:var(--paper-white);
+  }
+  .btn.ghost{
+    background:transparent;
+    color:var(--ink);
+  }
+  .btn:focus-visible{
+    outline:2px solid var(--stamp);
+    outline-offset:2px;
+  }
+
+  /* the slip itself */
+  .slip{
+    background:var(--paper-white);
+    border:1px solid var(--line);
+    box-shadow:0 18px 40px -20px rgba(20,31,51,0.35), 0 2px 0 var(--kraft);
+    padding:26px 26px 22px;
+    position:relative;
+    transform:rotate(-0.6deg);
+  }
+  .slip::before{
+    content:"";
+    position:absolute;
+    top:14px; left:-10px;
+    width:20px; height:calc(100% - 28px);
+    background:repeating-linear-gradient(
+      to bottom, var(--kraft) 0 8px, transparent 8px 16px
+    );
+    opacity:0.5;
+  }
+  .slip-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:1px dashed var(--line);
+    padding-bottom:10px;
+    margin-bottom:16px;
+  }
+  .slip-head .title{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:0.1em;
+    color:var(--ink);
+  }
+  .slip-head .no{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--kraft-dark);
+  }
+  .slip-field{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--kraft-dark);
+    margin-bottom:4px;
+  }
+  .slip-query{
+    font-family:'Source Serif 4', serif;
+    font-size:15px;
+    font-style:italic;
+    color:var(--charcoal);
+    border-bottom:1px solid var(--line);
+    padding-bottom:14px;
+    margin-bottom:16px;
+  }
+  .slip-rows{ display:flex; flex-direction:column; gap:0; }
+  .slip-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    letter-spacing:0.03em;
+    position:relative;
+  }
+  .slip-row:last-child{ border-bottom:none; }
+  .box{
+    width:14px; height:14px;
+    border:1.5px solid var(--ink);
+    flex-shrink:0;
+    position:relative;
+  }
+  .slip-row.active .box::after{
+    content:"✓";
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    color:var(--stamp);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .slip-row .dest{
+    margin-left:auto;
+    font-size:11px;
+    color:var(--kraft-dark);
+  }
+
+  .stamp{
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%) rotate(-8deg) scale(1.5);
+    opacity:0;
+    border:2px solid var(--stamp);
+    color:var(--stamp);
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:11px;
+    letter-spacing:0.1em;
+    padding:3px 8px;
+    border-radius:3px;
+    pointer-events:none;
+  }
+  .slip-row.active .stamp{
+    animation: stampdown 0.5s 0.9s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes stampdown{
+    0%{ opacity:0; transform:translateY(-50%) rotate(-8deg) scale(2.2); }
+    60%{ opacity:1; transform:translateY(-50%) rotate(-8deg) scale(0.92); }
+    100%{ opacity:1; transform:translateY(-50%) rotate(-8deg) scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .slip-row.active .stamp{ animation:none; opacity:1; transform:translateY(-50%) rotate(-8deg) scale(1); }
+  }
+
+  /* ---------- SECTIONS ---------- */
+  section{
+    padding:64px 0;
+    border-top:1px solid var(--line);
+  }
+  .section-head{
+    display:flex;
+    align-items:baseline;
+    gap:16px;
+    margin-bottom:34px;
+  }
+  .section-head .tab{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    background:var(--kraft);
+    color:var(--paper-white);
+    padding:4px 10px;
+    border-radius:2px;
+  }
+  .section-head h2{ font-size:28px; }
+
+  /* ---------- FLOW / GRAPH ---------- */
+  .flow{
+    background:var(--ink-deep);
+    color:var(--paper-white);
+    border-radius:4px;
+    padding:38px 30px;
+  }
+  .flow-track{
+    display:flex;
+    align-items:flex-start;
+    gap:0;
+    overflow-x:auto;
+    padding-bottom:8px;
+  }
+  .flow-node{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-width:120px;
+  }
+  .flow-node .dot{
+    width:14px; height:14px;
+    border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--kraft);
+  }
+  .flow-node.branch .dot{ border-color:var(--stamp); background:#f2d9d9; }
+  .flow-node .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    text-align:center;
+    margin-top:10px;
+    color:var(--paper-white);
+    max-width:110px;
+  }
+  .flow-node .sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    color:#9fb0c9;
+    margin-top:4px;
+    text-align:center;
+  }
+  .flow-arrow{
+    flex:0 0 auto;
+    width:40px;
+    height:14px;
+    margin-top:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--kraft);
+    font-size:14px;
+  }
+  .flow-branches{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin:0 6px;
+  }
+  .flow-note{
+    margin-top:22px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:#c9d3e2;
+    border-top:1px dashed rgba(255,255,255,0.2);
+    padding-top:16px;
+  }
+
+  /* ---------- STACK / REQUISITION ---------- */
+  .req-list{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:14px;
+  }
+  .req-item{
+    background:var(--paper-white);
+    border:1px solid var(--line);
+    border-left:4px solid var(--kraft);
+    padding:16px 18px;
+  }
+  .req-item .name{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:13.5px;
+    color:var(--ink);
+  }
+  .req-item .role{
+    font-size:14px;
+    margin-top:6px;
+    color:#4a4436;
+  }
+  .req-item .spec{
+    margin-top:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--kraft-dark);
+  }
+
+  /* ---------- STATE CARD ---------- */
+  .state-card{
+    background:var(--paper-white);
+    border:1px solid var(--line);
+    padding:0;
+    overflow:hidden;
+  }
+  .state-card .bar{
+    background:var(--ink);
+    color:var(--paper-white);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    padding:9px 16px;
+  }
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+  }
+  table.fields td{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+    font-size:14px;
+  }
+  table.fields tr:last-child td{ border-bottom:none; }
+  table.fields td.key{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--stamp);
+    width:180px;
+  }
+  table.fields td.type{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--kraft-dark);
+    width:110px;
+  }
+
+  /* ---------- ROUTES DETAIL ---------- */
+  .routes{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  .route{
+    border:1px solid var(--line);
+    background:var(--paper-white);
+    padding:18px;
+    position:relative;
+  }
+  .route .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--stamp);
+  }
+  .route h3{
+    font-size:18px;
+    margin-top:6px;
+  }
+  .route p{
+    font-size:13.5px;
+    margin-top:8px;
+    color:#4a4436;
+  }
+  .route ul{
+    margin:10px 0 0;
+    padding-left:18px;
+    font-size:12.5px;
+    color:#5a5340;
+  }
+
+  footer{
+    padding:40px 0 60px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--kraft-dark);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  @media (max-width: 860px){
+    .hero-grid{ grid-template-columns:1fr; }
+    .req-list{ grid-template-columns:1fr; }
+    .routes{ grid-template-columns:1fr; }
+    .hero-copy h1{ font-size:34px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="brand">INTAKE<span>·</span>DESK</div>
+  <div class="tag">ROUTING SLIP NO. 0417</div>
+</nav>
+
+<header class="hero">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <div class="eyebrow">College query assistant — LangGraph</div>
+      <h1>Every question gets <em>read</em> before it gets <em>answered.</em></h1>
+      <p class="lede">A conditional graph decides whether a student's question belongs in the academics handbook, the fee structure, or neither — then pulls only the right paperwork before drafting a reply.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#flow">See the routing logic</a>
+        <a class="btn ghost" href="#stack">Read the stack</a>
+      </div>
+    </div>
+
+    <div class="slip" role="img" aria-label="A routing slip showing a student query stamped and routed to the FEE department">
+      <div class="slip-head">
+        <span class="title">STUDENT QUERY INTAKE</span>
+        <span class="no">FORM 3-A</span>
+      </div>
+      <div class="slip-field">Query received</div>
+      <div class="slip-query">"Is there a late fee if I pay semester tuition after the deadline?"</div>
+      <div class="slip-field">Classify &amp; route to —</div>
+      <div class="slip-rows">
+        <div class="slip-row">
+          <span class="box"></span> ACADEMIC <span class="dest">academic_rag</span>
+        </div>
+        <div class="slip-row active">
+          <span class="box"></span> FEE <span class="dest">fee_rag</span>
+          <span class="stamp">ROUTED</span>
+        </div>
+        <div class="slip-row">
+          <span class="box"></span> GENERAL <span class="dest">general</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section id="flow">
+    <div class="section-head">
+      <span class="tab">Graph</span>
+      <h2>One classifier, three case files, one desk that answers</h2>
+    </div>
+    <p style="max-width:64ch; margin-bottom:28px; color:#4a4436;">
+      A single LLM call sorts the incoming message into <span class="mono">academic</span>, <span class="mono">fee</span>, or <span class="mono">general</span>. LangGraph's conditional edges send state down exactly one of three paths — no query ever touches a retriever it doesn't need.
+    </p>
+    <div class="flow">
+      <div class="flow-track">
+        <div class="flow-node">
+          <div class="dot"></div>
+          <div class="label">START</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="dot"></div>
+          <div class="label">classifier_node</div>
+          <div class="sub">categorizes query_type</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-branches">
+          <div class="flow-node branch">
+            <div class="dot"></div>
+            <div class="label">academic_rag_node</div>
+            <div class="sub">FAISS · handbook.pdf</div>
+          </div>
+          <div class="flow-node branch">
+            <div class="dot"></div>
+            <div class="label">fee_rag_node</div>
+            <div class="sub">FAISS · fee_structure.pdf</div>
+          </div>
+          <div class="flow-node branch">
+            <div class="dot"></div>
+            <div class="label">general_node</div>
+            <div class="sub">no retrieval</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="dot"></div>
+          <div class="label">response_node</div>
+          <div class="sub">personalized by programme</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="dot"></div>
+          <div class="label">END</div>
+        </div>
+      </div>
+      <div class="flow-note">route_query(state) reads state['query_type'] and returns the node name — the branch itself carries no logic, just a lookup.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="tab">Case files</span>
+      <h2>What each route actually does</h2>
+    </div>
+    <div class="routes">
+      <div class="route">
+        <div class="tag">Academic</div>
+        <h3>Handbook lookup</h3>
+        <p>Attendance, exams, grading, credits, promotion rules, summer training, degree requirements.</p>
+        <ul>
+          <li>Retriever over academics_handbook.pdf</li>
+          <li>Top 4 chunks by similarity</li>
+        </ul>
+      </div>
+      <div class="route">
+        <div class="tag">Fee</div>
+        <h3>Fee structure lookup</h3>
+        <p>Tuition, late charges, refunds, scholarships — anything money-related.</p>
+        <ul>
+          <li>Retriever over fee_structure.pdf</li>
+          <li>Top 4 chunks by similarity</li>
+        </ul>
+      </div>
+      <div class="route">
+        <div class="tag">General</div>
+        <h3>Open conversation</h3>
+        <p>Greetings and anything outside college rules or fees — answered from the model's own knowledge.</p>
+        <ul>
+          <li>No retrieval step</li>
+          <li>Skips straight to drafting</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <span class="tab">State</span>
+      <h2>What travels through the graph</h2>
+    </div>
+    <div class="state-card">
+      <div class="bar">TypedDict — State</div>
+      <table class="fields">
+        <tr><td class="key">programme</td><td class="type">str</td><td>Which of BCA, BBA, or B.Com (H) the student picked at the start — used to tailor the final answer.</td></tr>
+        <tr><td class="key">messages</td><td class="type">list</td><td>Conversation history, merged with LangGraph's add_messages reducer instead of overwritten.</td></tr>
+        <tr><td class="key">query_type</td><td class="type">str</td><td>The classifier's verdict: academic, fee, or general — read once by route_query.</td></tr>
+        <tr><td class="key">retrieved_context</td><td class="type">str</td><td>Joined chunk text from the matching retriever, or the literal NO_RETRIEVAL_NEEDED for general questions.</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="section-head">
+      <span class="tab">Requisition</span>
+      <h2>Parts on the desk</h2>
+    </div>
+    <div class="req-list">
+      <div class="req-item">
+        <div class="name">LangGraph</div>
+        <div class="role">StateGraph with conditional edges drives the whole routing decision — the branch, not a chain of if/else in application code.</div>
+        <div class="spec">StateGraph · add_conditional_edges · add_messages</div>
+      </div>
+      <div class="req-item">
+        <div class="name">Mistral AI</div>
+        <div class="role">Classifies queries and drafts every final answer, kept low-temperature so the classifier stays consistent.</div>
+        <div class="spec">ChatMistralAI · mistral-small-latest · temperature 0.4</div>
+      </div>
+      <div class="req-item">
+        <div class="name">HuggingFace embeddings</div>
+        <div class="role">Turns handbook and fee-structure chunks into vectors, shared by both retrievers.</div>
+        <div class="spec">sentence-transformers/all-MiniLM-L6-v2</div>
+      </div>
+      <div class="req-item">
+        <div class="name">FAISS</div>
+        <div class="role">Two separate in-memory indexes, one per document, each returning the four closest chunks.</div>
+        <div class="spec">as_retriever · search_kwargs k=4</div>
+      </div>
+      <div class="req-item">
+        <div class="name">PDF ingestion</div>
+        <div class="role">Source PDFs are loaded page by page, then cut into overlapping chunks so answers don't lose context at chunk boundaries.</div>
+        <div class="spec">PyPDFLoader · RecursiveCharacterTextSplitter (800 / 100)</div>
+      </div>
+      <div class="req-item">
+        <div class="name">python-dotenv</div>
+        <div class="role">Keeps the Mistral API key out of the source file, loaded once at start-up.</div>
+        <div class="spec">load_dotenv · os.environ</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="wrap">
+  <span>INTAKE DESK — an academic query router built on LangGraph</span>
+  <span>Programmes on file: BCA · BBA · B.Com (H)</span>
+</footer>
+
+<script>
+  // Re-trigger the stamp animation if the hero re-enters view (progressive enhancement only)
+  const activeRow = document.querySelector('.slip-row.active');
+  if (activeRow && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          activeRow.querySelector('.stamp').style.animation = 'none';
+          void activeRow.offsetWidth;
+          activeRow.querySelector('.stamp').style.animation = '';
+        }
+      });
+    }, {threshold:0.6});
+    io.observe(activeRow);
+  }
+</script>
+
+</body>
+</html>
