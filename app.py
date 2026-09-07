@@ -24,6 +24,11 @@ st.set_page_config(
 # ----------------------------
 # Step 1 - Building the RAG retrievers (cached so it runs only once)
 # ----------------------------
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError(
+        "GROQ_API_KEY not found. Please add it to your .env file."
+    )
 @st.cache_resource(show_spinner="Loading knowledge base...")
 def load_resources():
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
