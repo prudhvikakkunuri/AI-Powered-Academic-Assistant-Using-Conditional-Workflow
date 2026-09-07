@@ -40,9 +40,11 @@ def load_resources():
     acedemic_retriever = build_retriver("academics_handbook.pdf")
     fee_retriever = build_retriver("fee_structure.pdf")
 
-    llm = ChatGroq(model_name="llama-3.3-70b-versatile", 
-                   api_key=os.environ.get("GROQ_API_KEY"), 
-                   temperature=0.4)
+    llm = ChatGroq(
+    model="openai/gpt-oss-120b",
+    temperature=0.4,
+    api_key=GROQ_API_KEY
+)
 
     return acedemic_retriever, fee_retriever, llm
 
