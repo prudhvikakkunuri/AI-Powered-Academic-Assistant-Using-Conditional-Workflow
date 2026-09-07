@@ -1,8 +1,6 @@
 langgraph
 langchain
-langchain-mistralai
 langchain-groq
-mistralai
 python-dotenv
 
 langchain-community
