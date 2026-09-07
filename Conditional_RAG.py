@@ -2,7 +2,7 @@ import os
 from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages 
 from langgraph.graph import StateGraph , START , END 
-from langchain_mistralai import ChatMistralAI
+from langchain_groq import ChatGroq
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -32,7 +32,11 @@ def build_retriver(pdf_path : str):
 academic_retriever = build_retriver("data/academics_handbook.pdf")
 fee_retriever = build_retriver("data/fee_structure.pdf")
 
-llm = ChatMistralAI(model_name="mistral-small-latest", api_key=os.environ.get("MISTRAL_API_KEY"), temperature=0.4)
+llm = ChatGroq(
+    model="openai/gpt-oss-120b",
+    temperature=0.4,
+    api_key=GROQ_API_KEY
+)
 
 #step2 - State 
 
